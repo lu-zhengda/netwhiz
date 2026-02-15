@@ -81,6 +81,10 @@ When troubleshooting network issues, follow this order:
 
 Launch `netwhiz` without arguments for an interactive network dashboard. Run diagnostics, view results, and navigate between tools with a keyboard-driven interface.
 
+## Claude Code
+
+Available as a skill in the [macos-toolkit](https://github.com/lu-zhengda/macos-toolkit) Claude Code plugin. Ask Claude "check my WiFi" or "run a speed test" and it runs netwhiz automatically.
+
 ## License
 
 [MIT](LICENSE)
