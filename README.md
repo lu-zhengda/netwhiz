@@ -17,19 +17,30 @@ brew install netwhiz
 
 ```
 $ netwhiz info
-Interface: en0 (Wi-Fi)    Status: active
-Local IP:  192.168.1.42   Public IP: 203.0.113.1
-Gateway:   192.168.1.1    DNS: 1.1.1.1, 1.0.0.1
+Network Overview
+════════════════
+
+  Interface:     en0
+  Status:        Active
+  IP Address:    192.168.1.42
+  Subnet Mask:   255.255.252.0
+  Router:        192.168.1.1
+  DNS Servers:   (auto)
+
+  Public IP:     203.0.113.1
 
 $ netwhiz wifi
-SSID:     MyNetwork
-Channel:  36 (5 GHz)
-RSSI:     -42 dBm (Excellent)
-SNR:      35 dB
-Security: WPA3 Personal
+WiFi Information
+════════════════
 
-$ netwhiz speed
-Download: 245.3 Mbps (via Cloudflare)
+  SSID:          MyNetwork
+  Channel:       52 (5GHz)
+  RSSI:          -44 dBm (Excellent)
+  Noise:         -89 dBm
+  SNR:           45 dB
+  Tx Rate:       864 Mbps
+  Security:      WPA2 Personal
+  Country:       US
 ```
 
 ## Commands
