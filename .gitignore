@@ -1,0 +1,9 @@
+# Binary (root only, not cmd/netwhiz/)
+/netwhiz
+bin/
+
+# GoReleaser
+dist/
+
+# macOS
+.DS_Store
