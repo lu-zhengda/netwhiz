@@ -17,15 +17,19 @@ var scanCmd = &cobra.Command{
 
 		ctx := context.Background()
 
-		fmt.Println()
-		fmt.Println("ARP Network Scan")
-		fmt.Println("\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
-		fmt.Println()
-
 		entries, err := svc.ARPScan(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to scan network: %w", err)
 		}
+
+		if jsonFlag {
+			return printJSON(entries)
+		}
+
+		fmt.Println()
+		fmt.Println("ARP Network Scan")
+		fmt.Println("\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550")
+		fmt.Println()
 
 		if len(entries) == 0 {
 			fmt.Println("  No devices found.")

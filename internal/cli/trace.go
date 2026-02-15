@@ -21,15 +21,26 @@ var traceCmd = &cobra.Command{
 		host := args[0]
 		ctx := context.Background()
 
-		fmt.Printf("Traceroute to %s\n", host)
-		fmt.Println("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
-		fmt.Println()
-
 		hops, err := svc.Traceroute(ctx, host)
 		if err != nil {
 			return fmt.Errorf("failed to traceroute to %s: %w", host, err)
 		}
 
+		// Populate millisecond fields for JSON.
+		for i := range hops {
+			hops[i].RTTsMs = make([]float64, len(hops[i].RTTs))
+			for j, rtt := range hops[i].RTTs {
+				hops[i].RTTsMs[j] = float64(rtt) / float64(time.Millisecond)
+			}
+		}
+
+		if jsonFlag {
+			return printJSON(hops)
+		}
+
+		fmt.Printf("Traceroute to %s\n", host)
+		fmt.Println("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
+		fmt.Println()
 		printTraceroute(hops)
 		return nil
 	},
