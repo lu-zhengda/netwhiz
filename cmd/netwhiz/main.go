@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zhengda-lu/netwhiz/internal/cli"
+	"github.com/lu-zhengda/netwhiz/internal/cli"
 )
 
 func main() {

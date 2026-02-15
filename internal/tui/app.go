@@ -10,7 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/zhengda-lu/netwhiz/internal/network"
+	"github.com/lu-zhengda/netwhiz/internal/network"
 )
 
 // Tab indices.

@@ -1,4 +1,4 @@
-module github.com/zhengda-lu/netwhiz
+module github.com/lu-zhengda/netwhiz
 
 go 1.25.0
 

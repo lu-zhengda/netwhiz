@@ -23,6 +23,13 @@ jobs:
       - name: Run tests
         run: go test -race ./...
 
+      - name: Generate completions
+        run: |
+          mkdir -p completions
+          go run ./cmd/netwhiz --generate-completion bash > completions/netwhiz.bash
+          go run ./cmd/netwhiz --generate-completion zsh > completions/netwhiz.zsh
+          go run ./cmd/netwhiz --generate-completion fish > completions/netwhiz.fish
+
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"

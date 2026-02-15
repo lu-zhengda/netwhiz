@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/zhengda-lu/netwhiz/internal/network"
+	"github.com/lu-zhengda/netwhiz/internal/network"
 )
 
 var scanCmd = &cobra.Command{

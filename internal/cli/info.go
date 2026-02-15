@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/zhengda-lu/netwhiz/internal/network"
+	"github.com/lu-zhengda/netwhiz/internal/network"
 )
 
 var infoCmd = &cobra.Command{
