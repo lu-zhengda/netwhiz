@@ -59,4 +59,6 @@ func init() {
 	rootCmd.AddCommand(speedCmd)
 	rootCmd.AddCommand(scanCmd)
 	rootCmd.AddCommand(diagnoseCmd)
+	rootCmd.AddCommand(vpnCmd)
+	rootCmd.AddCommand(eventsCmd)
 }
