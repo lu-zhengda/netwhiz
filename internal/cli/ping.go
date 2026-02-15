@@ -22,14 +22,20 @@ var pingCmd = &cobra.Command{
 		host := args[0]
 		ctx := context.Background()
 
-		fmt.Printf("PING %s\n", host)
-		fmt.Println("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
-
 		stats, err := svc.Ping(ctx, host, pingCount)
 		if err != nil {
 			return fmt.Errorf("failed to ping %s: %w", host, err)
 		}
 
+		// Populate millisecond fields for JSON.
+		populatePingMs(stats)
+
+		if jsonFlag {
+			return printJSON(stats)
+		}
+
+		fmt.Printf("PING %s\n", host)
+		fmt.Println("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
 		printPingResults(stats)
 		return nil
 	},
@@ -37,6 +43,18 @@ var pingCmd = &cobra.Command{
 
 func init() {
 	pingCmd.Flags().IntVarP(&pingCount, "count", "c", 5, "Number of pings to send")
+}
+
+// populatePingMs fills in the human-readable millisecond fields on PingStats.
+func populatePingMs(stats *network.PingStats) {
+	stats.MinRTTMs = float64(stats.MinRTT) / float64(time.Millisecond)
+	stats.MaxRTTMs = float64(stats.MaxRTT) / float64(time.Millisecond)
+	stats.AvgRTTMs = float64(stats.AvgRTT) / float64(time.Millisecond)
+	stats.StdDevRTTMs = float64(stats.StdDevRTT) / float64(time.Millisecond)
+
+	for i := range stats.Results {
+		stats.Results[i].TimeMs = float64(stats.Results[i].Time) / float64(time.Millisecond)
+	}
 }
 
 func printPingResults(stats *network.PingStats) {

@@ -22,6 +22,10 @@ var infoCmd = &cobra.Command{
 			return fmt.Errorf("failed to get network info: %w", err)
 		}
 
+		if jsonFlag {
+			return printJSON(info)
+		}
+
 		printNetworkInfo(info)
 		return nil
 	},

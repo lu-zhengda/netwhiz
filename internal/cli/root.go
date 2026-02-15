@@ -46,6 +46,7 @@ func Execute() error {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Output in JSON format")
 	rootCmd.SetVersionTemplate(fmt.Sprintf("netwhiz %s\n", version))
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.Flags().String("generate-completion", "", "Generate shell completion (bash, zsh, fish)")
@@ -57,4 +58,5 @@ func init() {
 	rootCmd.AddCommand(traceCmd)
 	rootCmd.AddCommand(speedCmd)
 	rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(diagnoseCmd)
 }
