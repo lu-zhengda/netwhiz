@@ -44,8 +44,8 @@ var wifiEventPatterns = []struct {
 	pattern   *regexp.Regexp
 	eventType string
 }{
-	{regexp.MustCompile(`(?i)disassociated`), "wifi_disconnect"},
-	{regexp.MustCompile(`(?i)associated`), "wifi_connect"},
+	{regexp.MustCompile(`(?i)disassociat`), "wifi_disconnect"},
+	{regexp.MustCompile(`(?i)\bassociat`), "wifi_connect"},
 	{regexp.MustCompile(`(?i)SSID`), "wifi_ssid_change"},
 	{regexp.MustCompile(`(?i)roam`), "wifi_roam"},
 }
@@ -61,14 +61,17 @@ var networkEventPatterns = []struct {
 	{regexp.MustCompile(`(?i)interface.*down|link.*down`), "interface_down"},
 	{regexp.MustCompile(`(?i)VPN.*disconnect|tunnel.*tear`), "vpn_disconnect"},
 	{regexp.MustCompile(`(?i)VPN.*connect|tunnel.*establish`), "vpn_connect"},
+	{regexp.MustCompile(`(?i)path:unsatisfied|path became unsatisfied`), "path_unsatisfied"},
+	{regexp.MustCompile(`(?i)path:satisfied[^_]|path became satisfied`), "path_satisfied"},
+	{regexp.MustCompile(`(?i)flow:disconnect`), "connection_drop"},
 }
 
 // interfaceRegexp extracts interface names like en0, en1, utun0, etc.
 var interfaceRegexp = regexp.MustCompile(`\b(en\d+|utun\d+|lo\d+|bridge\d+|awdl\d+|llw\d+)\b`)
 
 // logLineRegexp parses compact log format lines.
-// Example: 2024-01-15 10:30:45.123456-0800  pid  subsystem  message
-var logLineRegexp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+[\-+]\d{4})\s+(.+)$`)
+// Example: 2024-01-15 10:30:45.123 Df wifid[234:1234] [com.apple.wifi:manager] message
+var logLineRegexp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+(?:[\-+]\d{4})?)\s+(.+)$`)
 
 // ParseNetworkEvents parses log output and extracts network-related events.
 func ParseNetworkEvents(output string) []NetworkEvent {

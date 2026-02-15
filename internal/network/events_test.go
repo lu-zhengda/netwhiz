@@ -16,46 +16,46 @@ func TestParseNetworkEvents(t *testing.T) {
 	}{
 		{
 			name: "wifi disconnect event",
-			input: `2024-01-15 10:30:45.123456-0800  0x1234  com.apple.wifi  WiFi interface en0 disassociated from network
+			input: `2024-01-15 10:30:45.123 Df wifid[234:1234] [com.apple.wifi:manager] WiFi interface en0 disassociated from network
 `,
 			wantCount: 1,
 			wantTypes: []string{"wifi_disconnect"},
 		},
 		{
 			name: "wifi connect event",
-			input: `2024-01-15 10:31:00.123456-0800  0x1234  com.apple.wifi  WiFi interface en0 associated with SSID MyNetwork
+			input: `2024-01-15 10:31:00.123 Df wifid[234:1234] [com.apple.wifi:manager] WiFi interface en0 associated with SSID MyNetwork
 `,
 			wantCount: 1,
 			wantTypes: []string{"wifi_connect"},
 		},
 		{
 			name: "ip address change",
-			input: `2024-01-15 10:32:00.123456-0800  0x5678  com.apple.network  address changed for en0: 192.168.1.100
+			input: `2024-01-15 10:32:00.123 Df configd[100:5678] [com.apple.network:config] address changed for en0: 192.168.1.100
 `,
 			wantCount: 1,
 			wantTypes: []string{"ip_change"},
 		},
 		{
 			name: "dns configuration change",
-			input: `2024-01-15 10:33:00.123456-0800  0x9abc  com.apple.network  DNS config updated for resolver
+			input: `2024-01-15 10:33:00.123 Df mDNSResponder[345:9abc] [com.apple.network:dns] DNS config updated for resolver
 `,
 			wantCount: 1,
 			wantTypes: []string{"dns_change"},
 		},
 		{
 			name: "interface up and down",
-			input: `2024-01-15 10:34:00.123456-0800  0xdef0  com.apple.network  interface down: en0
-2024-01-15 10:34:05.123456-0800  0xdef0  com.apple.network  interface up: en0
+			input: `2024-01-15 10:34:00.123 Df configd[100:def0] [com.apple.network:config] interface down: en0
+2024-01-15 10:34:05.123 Df configd[100:def0] [com.apple.network:config] interface up: en0
 `,
 			wantCount: 2,
 			wantTypes: []string{"interface_down", "interface_up"},
 		},
 		{
 			name: "multiple mixed events",
-			input: `2024-01-15 10:30:00.123456-0800  0x1111  com.apple.wifi  WiFi disassociated from network on en0
-2024-01-15 10:30:05.123456-0800  0x2222  com.apple.network  Some unrelated log message about networking
-2024-01-15 10:30:10.123456-0800  0x3333  com.apple.wifi  WiFi associated with SSID OtherNetwork on en0
-2024-01-15 10:30:15.123456-0800  0x4444  com.apple.network  DNS config changed
+			input: `2024-01-15 10:30:00.123 Df wifid[234:1111] [com.apple.wifi:manager] WiFi disassociated from network on en0
+2024-01-15 10:30:05.123 Df configd[100:2222] [com.apple.network:config] Some unrelated log message about networking
+2024-01-15 10:30:10.123 Df wifid[234:3333] [com.apple.wifi:manager] WiFi associated with SSID OtherNetwork on en0
+2024-01-15 10:30:15.123 Df mDNSResponder[345:4444] [com.apple.network:dns] DNS config changed
 `,
 			wantCount: 3,
 			wantTypes: []string{"wifi_disconnect", "wifi_connect", "dns_change"},
@@ -68,8 +68,8 @@ func TestParseNetworkEvents(t *testing.T) {
 		},
 		{
 			name: "no matching events",
-			input: `2024-01-15 10:30:00.123456-0800  0x1111  com.apple.network  routine heartbeat check
-2024-01-15 10:31:00.123456-0800  0x2222  com.apple.network  connection pool status: ok
+			input: `2024-01-15 10:30:00.123 Df configd[100:1111] [com.apple.network:config] routine heartbeat check
+2024-01-15 10:31:00.123 Df configd[100:2222] [com.apple.network:config] connection pool status: ok
 `,
 			wantCount: 0,
 			wantTypes: nil,
@@ -77,11 +77,46 @@ func TestParseNetworkEvents(t *testing.T) {
 		{
 			name: "malformed lines are skipped",
 			input: `This is not a log line
-2024-01-15 10:30:00.123456-0800  0x1111  com.apple.wifi  WiFi disassociated
+2024-01-15 10:30:00.123 Df wifid[234:1111] [com.apple.wifi:manager] WiFi disassociated
 Another bad line
 `,
 			wantCount: 1,
 			wantTypes: []string{"wifi_disconnect"},
+		},
+		{
+			name: "path unsatisfied event",
+			input: `2024-01-15 10:30:00.123 Df trustd[554:1111] [com.apple.network:connection] [C5 failed parent-flow] event: path:unsatisfied @30.382s
+`,
+			wantCount: 1,
+			wantTypes: []string{"path_unsatisfied"},
+		},
+		{
+			name: "path satisfied event",
+			input: `2024-01-15 10:32:00.123 Df trustd[554:3333] [com.apple.network:connection] [C5 ready parent-flow] event: path:satisfied @0.165s
+`,
+			wantCount: 1,
+			wantTypes: []string{"path_satisfied"},
+		},
+		{
+			name: "flow disconnect event",
+			input: `2024-01-15 10:30:00.123 Df trustd[554:1111] [com.apple.network:connection] [C5 failed parent-flow] event: flow:disconnect @30.382s
+`,
+			wantCount: 1,
+			wantTypes: []string{"connection_drop"},
+		},
+		{
+			name: "path became unsatisfied",
+			input: `2024-01-15 10:31:00.123 Df mDNSResponder[345:2222] [com.apple.network:path] path became unsatisfied for en0
+`,
+			wantCount: 1,
+			wantTypes: []string{"path_unsatisfied"},
+		},
+		{
+			name: "path satisfied_change should not match path_satisfied",
+			input: `2024-01-15 10:32:00.123 Df trustd[554:3333] [com.apple.network:connection] [C5 ready parent-flow (satisfied)] event: path:satisfied_change @0.165s
+`,
+			wantCount: 0,
+			wantTypes: nil,
 		},
 	}
 
@@ -103,7 +138,7 @@ Another bad line
 }
 
 func TestParseNetworkEvents_InterfaceExtraction(t *testing.T) {
-	input := `2024-01-15 10:30:00.123456-0800  0x1111  com.apple.wifi  WiFi disassociated on en0
+	input := `2024-01-15 10:30:00.123 Df wifid[234:1111] [com.apple.wifi:manager] WiFi disassociated on en0
 `
 	events := ParseNetworkEvents(input)
 
@@ -117,7 +152,7 @@ func TestParseNetworkEvents_InterfaceExtraction(t *testing.T) {
 }
 
 func TestParseNetworkEvents_Timestamp(t *testing.T) {
-	input := `2024-01-15 10:30:45.123456-0800  0x1111  com.apple.wifi  WiFi disassociated
+	input := `2024-01-15 10:30:45.123 Df wifid[234:1111] [com.apple.wifi:manager] WiFi disassociated
 `
 	events := ParseNetworkEvents(input)
 
@@ -125,8 +160,8 @@ func TestParseNetworkEvents_Timestamp(t *testing.T) {
 		t.Fatalf("expected 1 event, got %d", len(events))
 	}
 
-	if events[0].Timestamp != "2024-01-15 10:30:45.123456-0800" {
-		t.Errorf("Timestamp = %q, want %q", events[0].Timestamp, "2024-01-15 10:30:45.123456-0800")
+	if events[0].Timestamp != "2024-01-15 10:30:45.123" {
+		t.Errorf("Timestamp = %q, want %q", events[0].Timestamp, "2024-01-15 10:30:45.123")
 	}
 }
 
@@ -138,17 +173,17 @@ func TestParseNetworkEvents_VPNEvents(t *testing.T) {
 	}{
 		{
 			name:     "VPN connect",
-			input:    `2024-01-15 10:30:00.123456-0800  0x1111  com.apple.network  VPN connection established on utun0`,
+			input:    `2024-01-15 10:30:00.123 Df nesessionmanager[500:1111] [com.apple.network:vpn] VPN connection established on utun0`,
 			wantType: "vpn_connect",
 		},
 		{
 			name:     "VPN disconnect",
-			input:    `2024-01-15 10:30:00.123456-0800  0x1111  com.apple.network  VPN disconnected on utun0`,
+			input:    `2024-01-15 10:30:00.123 Df nesessionmanager[500:1111] [com.apple.network:vpn] VPN disconnected on utun0`,
 			wantType: "vpn_disconnect",
 		},
 		{
 			name:     "tunnel established",
-			input:    `2024-01-15 10:30:00.123456-0800  0x1111  com.apple.network  tunnel established for utun0`,
+			input:    `2024-01-15 10:30:00.123 Df nesessionmanager[500:1111] [com.apple.network:vpn] tunnel established for utun0`,
 			wantType: "vpn_connect",
 		},
 	}
@@ -168,7 +203,7 @@ func TestParseNetworkEvents_VPNEvents(t *testing.T) {
 
 func TestNetworkEventJSON(t *testing.T) {
 	event := NetworkEvent{
-		Timestamp: "2024-01-15 10:30:00.123456-0800",
+		Timestamp: "2024-01-15 10:30:00.123",
 		Type:      "wifi_disconnect",
 		Interface: "en0",
 		Detail:    "WiFi disassociated from network",
@@ -194,7 +229,7 @@ func TestNetworkEventJSON(t *testing.T) {
 
 func TestNetworkEventJSON_OmitEmpty(t *testing.T) {
 	event := NetworkEvent{
-		Timestamp: "2024-01-15 10:30:00.123456-0800",
+		Timestamp: "2024-01-15 10:30:00.123",
 		Type:      "dns_change",
 		Detail:    "DNS config changed",
 	}
@@ -249,8 +284,8 @@ func TestSummarizeMessage(t *testing.T) {
 
 func TestEventService_GetEvents(t *testing.T) {
 	mock := &MockCmdRunner{
-		Output: []byte(`2024-01-15 10:30:00.123456-0800  0x1111  com.apple.wifi  WiFi disassociated on en0
-2024-01-15 10:31:00.123456-0800  0x2222  com.apple.wifi  WiFi associated with SSID MyNetwork on en0
+		Output: []byte(`2024-01-15 10:30:00.123 Df wifid[234:1111] [com.apple.wifi:manager] WiFi disassociated on en0
+2024-01-15 10:31:00.123 Df wifid[234:2222] [com.apple.wifi:manager] WiFi associated with SSID MyNetwork on en0
 `),
 	}
 
