@@ -10,6 +10,7 @@ import (
 )
 
 var eventsLast string
+var typeFilter string
 
 var eventsCmd = &cobra.Command{
 	Use:   "events",
@@ -25,6 +26,16 @@ var eventsCmd = &cobra.Command{
 			return fmt.Errorf("failed to get network events: %w", err)
 		}
 
+		if typeFilter != "" {
+			var filtered []network.NetworkEvent
+			for _, e := range events {
+				if e.Type == typeFilter {
+					filtered = append(filtered, e)
+				}
+			}
+			events = filtered
+		}
+
 		events = network.DeduplicateEvents(events, 30*time.Second)
 
 		if jsonFlag {
@@ -38,6 +49,7 @@ var eventsCmd = &cobra.Command{
 
 func init() {
 	eventsCmd.Flags().StringVar(&eventsLast, "last", "24h", "Time range to search (e.g., 1h, 30m, 24h, 7d)")
+	eventsCmd.Flags().StringVar(&typeFilter, "type", "", "Filter events by type (e.g., wifi_disconnect, connection_drop, path_satisfied)")
 }
 
 func printNetworkEvents(events []network.NetworkEvent) {
