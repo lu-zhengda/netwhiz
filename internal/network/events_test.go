@@ -272,6 +272,16 @@ func TestSummarizeMessage(t *testing.T) {
 			want:  "WiFi disconnected",
 		},
 		{
+			name:  "strips prefix with spaces in process name",
+			input: "Df Adobe Lightroom[2267:d9979a] [com.apple.network:connection] [C79 example.com:443] path:satisfied",
+			want:  "[C79 example.com:443] path:satisfied",
+		},
+		{
+			name:  "strips prefix with spaces in multi-word process name",
+			input: "Df Spark Desktop Helper[30028:dd853b] [com.apple.network:connection] [C148 imap.gmail.com:993] path:satisfied",
+			want:  "[C148 imap.gmail.com:993] path:satisfied",
+		},
+		{
 			name:  "no prefix to strip",
 			input: "Simple message",
 			want:  "Simple message",

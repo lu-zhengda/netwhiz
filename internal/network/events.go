@@ -76,7 +76,7 @@ var interfaceRegexp = regexp.MustCompile(`\b(en\d+|utun\d+|lo\d+|bridge\d+|awdl\
 var logLineRegexp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+(?:[\-+]\d{4})?)\s+(.+)$`)
 
 // logPrefixRegexp matches the compact log prefix: "Ty process[PID:TID] [subsystem:category] "
-var logPrefixRegexp = regexp.MustCompile(`^\w{1,3}\s+\S+\[[^\]]+\]\s+\[[^\]]+\]\s+`)
+var logPrefixRegexp = regexp.MustCompile(`^\w{1,3}\s+.+?\[[^\]]+\]\s+\[[^\]]+\]\s+`)
 
 // ParseNetworkEvents parses log output and extracts network-related events.
 func ParseNetworkEvents(output string) []NetworkEvent {
