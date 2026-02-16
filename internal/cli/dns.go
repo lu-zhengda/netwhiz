@@ -82,10 +82,25 @@ var dnsSetCmd = &cobra.Command{
 		ctx := context.Background()
 		server := args[0]
 
-		fmt.Printf("Setting DNS to %s...\n", server)
+		if !jsonFlag {
+			fmt.Printf("Setting DNS to %s...\n", server)
+		}
 
 		if err := svc.SetDNS(ctx, server); err != nil {
 			return fmt.Errorf("failed to set DNS: %w", err)
+		}
+
+		if jsonFlag {
+			msg := "DNS set to " + server
+			if preset := network.ResolveDNSPreset(server); preset != nil {
+				msg = fmt.Sprintf("DNS set to %s (%s)", server, strings.Join(preset, ", "))
+			}
+			return printJSON(jsonAction{
+				OK:      true,
+				Action:  "dns_set",
+				Target:  server,
+				Message: msg,
+			})
 		}
 
 		// Show what was set.
@@ -110,10 +125,21 @@ var dnsFlushCmd = &cobra.Command{
 		svc := network.NewDNSService(runner)
 
 		ctx := context.Background()
-		fmt.Println("Flushing DNS cache...")
+
+		if !jsonFlag {
+			fmt.Println("Flushing DNS cache...")
+		}
 
 		if err := svc.FlushDNS(ctx); err != nil {
 			return fmt.Errorf("failed to flush DNS cache: %w", err)
+		}
+
+		if jsonFlag {
+			return printJSON(jsonAction{
+				OK:      true,
+				Action:  "dns_flush",
+				Message: "DNS cache flushed successfully",
+			})
 		}
 
 		fmt.Println("DNS cache flushed successfully.")

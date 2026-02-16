@@ -65,3 +65,36 @@ func TestPrintJSON_Struct(t *testing.T) {
 		t.Errorf("unexpected output: %+v", parsed)
 	}
 }
+
+func TestFprintJSON(t *testing.T) {
+	var buf bytes.Buffer
+	data := map[string]string{"hello": "world"}
+
+	if err := fprintJSON(&buf, data); err != nil {
+		t.Fatalf("fprintJSON returned error: %v", err)
+	}
+
+	var parsed map[string]string
+	if err := json.Unmarshal(buf.Bytes(), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v\nOutput: %s", err, buf.String())
+	}
+
+	if parsed["hello"] != "world" {
+		t.Errorf("expected hello=world, got hello=%s", parsed["hello"])
+	}
+}
+
+func TestFprintJSON_Indented(t *testing.T) {
+	var buf bytes.Buffer
+	data := map[string]int{"a": 1}
+
+	if err := fprintJSON(&buf, data); err != nil {
+		t.Fatalf("fprintJSON returned error: %v", err)
+	}
+
+	output := buf.String()
+	// Verify indentation (2-space indent).
+	if !bytes.Contains([]byte(output), []byte("  \"a\"")) {
+		t.Errorf("expected indented output, got: %s", output)
+	}
+}

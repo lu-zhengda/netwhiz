@@ -42,7 +42,9 @@ var vpnConnectCmd = &cobra.Command{
 		ctx := context.Background()
 		name := args[0]
 
-		fmt.Printf("Connecting to VPN %q...\n", name)
+		if !jsonFlag {
+			fmt.Printf("Connecting to VPN %q...\n", name)
+		}
 
 		if err := svc.Connect(ctx, name); err != nil {
 			return fmt.Errorf("failed to connect to VPN: %w", err)
@@ -51,8 +53,25 @@ var vpnConnectCmd = &cobra.Command{
 		// Check status after connecting.
 		status, err := svc.GetVPNStatus(ctx, name)
 		if err != nil {
+			if jsonFlag {
+				return printJSON(jsonAction{
+					OK:      true,
+					Action:  "vpn_connect",
+					Target:  name,
+					Message: fmt.Sprintf("Connected (unable to verify status: %v)", err),
+				})
+			}
 			fmt.Printf("Connected (unable to verify status: %v)\n", err)
 			return nil
+		}
+
+		if jsonFlag {
+			return printJSON(jsonAction{
+				OK:      true,
+				Action:  "vpn_connect",
+				Target:  name,
+				Message: fmt.Sprintf("VPN %q status: %s", name, status.Status),
+			})
 		}
 
 		if status.Status == "Connected" {
@@ -77,10 +96,21 @@ var vpnDisconnectCmd = &cobra.Command{
 
 		if len(args) == 1 {
 			name := args[0]
-			fmt.Printf("Disconnecting VPN %q...\n", name)
+			if !jsonFlag {
+				fmt.Printf("Disconnecting VPN %q...\n", name)
+			}
 
 			if err := svc.Disconnect(ctx, name); err != nil {
 				return fmt.Errorf("failed to disconnect VPN: %w", err)
+			}
+
+			if jsonFlag {
+				return printJSON(jsonAction{
+					OK:      true,
+					Action:  "vpn_disconnect",
+					Target:  name,
+					Message: fmt.Sprintf("Disconnected %q", name),
+				})
 			}
 
 			fmt.Printf("Disconnected %q\n", name)
@@ -91,6 +121,18 @@ var vpnDisconnectCmd = &cobra.Command{
 		disconnected, err := svc.DisconnectAll(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to disconnect VPNs: %w", err)
+		}
+
+		if jsonFlag {
+			msg := "No active VPN connections to disconnect"
+			if len(disconnected) > 0 {
+				msg = fmt.Sprintf("Disconnected %d VPN(s)", len(disconnected))
+			}
+			return printJSON(jsonAction{
+				OK:      true,
+				Action:  "vpn_disconnect_all",
+				Message: msg,
+			})
 		}
 
 		if len(disconnected) == 0 {
