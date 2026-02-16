@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestParseNetworkEvents(t *testing.T) {
@@ -261,13 +262,23 @@ func TestSummarizeMessage(t *testing.T) {
 			want:  "WiFi disassociated",
 		},
 		{
-			name:  "exactly at limit",
-			input: string(make([]byte, 200)),
-			want:  string(make([]byte, 200)),
+			name:  "strips compact log prefix with connection info",
+			input: "Df mDNSResponder[461:dbcd2b] [com.apple.network:connection] [C5666 example.com:443] path:satisfied",
+			want:  "[C5666 example.com:443] path:satisfied",
 		},
 		{
-			name:  "long message truncated",
-			input: string(make([]byte, 300)),
+			name:  "strips compact log prefix leaving plain message",
+			input: "E  symptomsd[234:abc123] [com.apple.network:wifi] WiFi disconnected",
+			want:  "WiFi disconnected",
+		},
+		{
+			name:  "no prefix to strip",
+			input: "Simple message",
+			want:  "Simple message",
+		},
+		{
+			name:  "long message after prefix strip still truncated",
+			input: "Df proc[1:2] [a:b] " + string(make([]byte, 300)),
 			want:  string(make([]byte, 197)) + "...",
 		},
 	}
@@ -275,6 +286,9 @@ func TestSummarizeMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := summarizeMessage(tt.input)
+			if got != tt.want {
+				t.Errorf("summarizeMessage() = %q, want %q", got, tt.want)
+			}
 			if len(got) > 200 {
 				t.Errorf("summarizeMessage() returned %d chars, want <= 200", len(got))
 			}
@@ -309,5 +323,80 @@ func TestEventService_GetEvents_Error(t *testing.T) {
 	_, err := svc.GetEvents(context.Background(), "24h")
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestDeduplicateEvents(t *testing.T) {
+	tests := []struct {
+		name       string
+		events     []NetworkEvent
+		window     time.Duration
+		wantCount  int
+		wantCounts []int
+	}{
+		{
+			name:      "empty input",
+			events:    nil,
+			window:    30 * time.Second,
+			wantCount: 0,
+		},
+		{
+			name: "single event gets count 1",
+			events: []NetworkEvent{
+				{Timestamp: "2025-01-15 10:30:00.123", Type: "path_satisfied", Detail: "test"},
+			},
+			window:     30 * time.Second,
+			wantCount:  1,
+			wantCounts: []int{1},
+		},
+		{
+			name: "5 consecutive same-type within window collapsed",
+			events: []NetworkEvent{
+				{Timestamp: "2025-01-15 10:30:00.123", Type: "path_satisfied", Detail: "d1"},
+				{Timestamp: "2025-01-15 10:30:05.123", Type: "path_satisfied", Detail: "d2"},
+				{Timestamp: "2025-01-15 10:30:10.123", Type: "path_satisfied", Detail: "d3"},
+				{Timestamp: "2025-01-15 10:30:15.123", Type: "path_satisfied", Detail: "d4"},
+				{Timestamp: "2025-01-15 10:30:20.123", Type: "path_satisfied", Detail: "d5"},
+			},
+			window:     30 * time.Second,
+			wantCount:  1,
+			wantCounts: []int{5},
+		},
+		{
+			name: "2 different types remain separate",
+			events: []NetworkEvent{
+				{Timestamp: "2025-01-15 10:30:00.123", Type: "path_satisfied", Detail: "d1"},
+				{Timestamp: "2025-01-15 10:30:05.123", Type: "wifi_disconnect", Detail: "d2"},
+			},
+			window:     30 * time.Second,
+			wantCount:  2,
+			wantCounts: []int{1, 1},
+		},
+		{
+			name: "same type but outside window produces separate events",
+			events: []NetworkEvent{
+				{Timestamp: "2025-01-15 10:30:00.123", Type: "path_satisfied", Detail: "d1"},
+				{Timestamp: "2025-01-15 10:31:00.123", Type: "path_satisfied", Detail: "d2"},
+			},
+			window:     30 * time.Second,
+			wantCount:  2,
+			wantCounts: []int{1, 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DeduplicateEvents(tt.events, tt.window)
+
+			if len(got) != tt.wantCount {
+				t.Fatalf("DeduplicateEvents() returned %d events, want %d", len(got), tt.wantCount)
+			}
+
+			for i, wantCount := range tt.wantCounts {
+				if got[i].Count != wantCount {
+					t.Errorf("event[%d].Count = %d, want %d", i, got[i].Count, wantCount)
+				}
+			}
+		})
 	}
 }

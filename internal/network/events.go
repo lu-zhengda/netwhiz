@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // NetworkEvent represents a network-related system log event.
@@ -13,6 +14,7 @@ type NetworkEvent struct {
 	Type      string `json:"type"`
 	Interface string `json:"interface,omitempty"`
 	Detail    string `json:"detail"`
+	Count     int    `json:"count,omitempty"`
 }
 
 // EventService retrieves network-related events from system logs.
@@ -72,6 +74,9 @@ var interfaceRegexp = regexp.MustCompile(`\b(en\d+|utun\d+|lo\d+|bridge\d+|awdl\
 // logLineRegexp parses compact log format lines.
 // Example: 2024-01-15 10:30:45.123 Df wifid[234:1234] [com.apple.wifi:manager] message
 var logLineRegexp = regexp.MustCompile(`^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+(?:[\-+]\d{4})?)\s+(.+)$`)
+
+// logPrefixRegexp matches the compact log prefix: "Ty process[PID:TID] [subsystem:category] "
+var logPrefixRegexp = regexp.MustCompile(`^\w{1,3}\s+\S+\[[^\]]+\]\s+\[[^\]]+\]\s+`)
 
 // ParseNetworkEvents parses log output and extracts network-related events.
 func ParseNetworkEvents(output string) []NetworkEvent {
@@ -134,11 +139,59 @@ func classifyEvent(message string) *NetworkEvent {
 	return nil
 }
 
-// summarizeMessage trims a log message to a reasonable length for display.
+// summarizeMessage strips the compact log prefix and trims to a reasonable length.
 func summarizeMessage(message string) string {
+	msg := logPrefixRegexp.ReplaceAllString(message, "")
+
 	const maxLen = 200
-	if len(message) <= maxLen {
-		return message
+	if len(msg) <= maxLen {
+		return msg
 	}
-	return message[:maxLen-3] + "..."
+	return msg[:maxLen-3] + "..."
+}
+
+// DeduplicateEvents collapses consecutive events of the same type
+// within a time window into a single event with a count.
+func DeduplicateEvents(events []NetworkEvent, window time.Duration) []NetworkEvent {
+	if len(events) == 0 {
+		return nil
+	}
+
+	const tsLayout = "2006-01-02 15:04:05"
+
+	// parseTS extracts just the date+time portion for comparison.
+	parseTS := func(ts string) (time.Time, bool) {
+		// Timestamps may include fractional seconds and timezone offsets;
+		// truncate to "2006-01-02 15:04:05" for grouping.
+		if len(ts) >= len(tsLayout) {
+			t, err := time.Parse(tsLayout, ts[:len(tsLayout)])
+			if err == nil {
+				return t, true
+			}
+		}
+		return time.Time{}, false
+	}
+
+	var result []NetworkEvent
+
+	current := events[0]
+	current.Count = 1
+	groupStart, _ := parseTS(current.Timestamp)
+
+	for i := 1; i < len(events); i++ {
+		ev := events[i]
+		evTime, ok := parseTS(ev.Timestamp)
+
+		if ev.Type == current.Type && ok && evTime.Sub(groupStart) <= window {
+			current.Count++
+		} else {
+			result = append(result, current)
+			current = ev
+			current.Count = 1
+			groupStart = evTime
+		}
+	}
+
+	result = append(result, current)
+	return result
 }
