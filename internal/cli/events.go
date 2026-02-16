@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/lu-zhengda/netwhiz/internal/network"
 	"github.com/spf13/cobra"
@@ -23,6 +24,8 @@ var eventsCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to get network events: %w", err)
 		}
+
+		events = network.DeduplicateEvents(events, 30*time.Second)
 
 		if jsonFlag {
 			return printJSON(events)
@@ -56,7 +59,11 @@ func printNetworkEvents(events []network.NetworkEvent) {
 		if event.Interface != "" {
 			iface = fmt.Sprintf(" [%s]", event.Interface)
 		}
-		fmt.Printf("  %s  %-20s%s\n", event.Timestamp, event.Type, iface)
+		eventType := event.Type
+		if event.Count > 1 {
+			eventType = fmt.Sprintf("%s (x%d)", event.Type, event.Count)
+		}
+		fmt.Printf("  %s  %-20s%s\n", event.Timestamp, eventType, iface)
 		fmt.Printf("    %s\n\n", event.Detail)
 	}
 }
